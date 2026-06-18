@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NoBite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lato:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',system-ui,sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+
+/* ── Mode switcher bar ── */
+#switcher{height:48px;background:#063A36;display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0;z-index:100;}
+.sw-logo{display:flex;align-items:center;gap:8px;}
+.sw-logo-icon{width:26px;height:26px;border-radius:7px;background:#00AE99;display:flex;align-items:center;justify-content:center;}
+.sw-logo-text{font:800 16px/1 'Lato',sans-serif;letter-spacing:-.02em;color:#fff;}
+.sw-logo-text span{color:#63ECD4;}
+.sw-tabs{display:flex;gap:4px;background:rgba(255,255,255,.1);border-radius:9999px;padding:3px;}
+.sw-tab{padding:6px 16px;border-radius:9999px;font:600 12px/1 Inter;color:rgba(255,255,255,.65);cursor:pointer;border:none;background:transparent;transition:all .18s;}
+.sw-tab.active{background:#fff;color:#063A36;}
+.sw-hint{font:400 11px/1 Inter;color:rgba(255,255,255,.4);}
+
+/* ── Views ── */
+#view-app,#view-admin{flex:1;overflow:hidden;display:none;}
+#view-app.show{display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#EEF2F5,#E2E8EC);}
+#view-admin.show{display:flex;}
+
+/* ══════════ APP STYLES ══════════ */
+.device{width:402px;height:calc(100vh - 48px);max-height:874px;border-radius:48px;overflow:hidden;position:relative;background:#F4F6F8;box-shadow:0 40px 80px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.12);flex-shrink:0;}
+.island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:126px;height:37px;border-radius:24px;background:#000;z-index:50;}
+.status-bar-app{position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;padding:20px 28px 0;height:54px;}
+.status-time{font-family:-apple-system,system-ui;font-weight:600;font-size:16px;color:#fff;flex:1;}
+.status-icons{display:flex;align-items:center;gap:6px;}
+.home-ind{position:absolute;bottom:8px;left:0;right:0;z-index:60;display:flex;justify-content:center;pointer-events:none;}
+.home-bar{width:134px;height:5px;border-radius:100px;background:rgba(0,0,0,.25);}
+.screen{position:absolute;inset:0 0 86px 0;overflow:hidden;}
+.screen-scroll{position:absolute;inset:0;overflow-y:auto;}
+.screen-scroll::-webkit-scrollbar{display:none;}
+.bottom-nav{position:absolute;left:0;right:0;bottom:0;z-index:40;height:86px;background:rgba(255,255,255,.94);backdrop-filter:blur(16px);border-top:1px solid #EAECF0;display:flex;padding:10px 8px 22px;}
+.nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;background:none;border:none;padding:0;}
+.nav-tab svg{width:23px;height:23px;}
+.nav-tab span{font:600 10px/1 'Inter';display:block;}
+@keyframes nb-pulse{0%{transform:scale(.6);opacity:.55}100%{transform:scale(2.4);opacity:0}}
+@keyframes nb-rise{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes nb-fade{from{opacity:0}to{opacity:1}}
+@keyframes nb-blink{0%,100%{opacity:1}50%{opacity:.35}}
+.anim-pulse{animation:nb-pulse 2s ease-out infinite;}
+.anim-rise{animation:nb-rise .32s cubic-bezier(.16,1,.3,1);}
+.anim-fade{animation:nb-fade .2s ease;}
+.anim-blink{animation:nb-blink 1.6s ease infinite;}
+.tap{cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.tap:active{filter:brightness(.92);}
+.hidden{display:none!important;}
+
+/* ══════════ ADMIN STYLES ══════════ */
+#view-admin #sidebar{width:264px;background:linear-gradient(180deg,#063A36,#044A44);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+#view-admin #sidebar::-webkit-scrollbar{display:none;}
+.sb-logo{padding:20px 20px 10px;display:flex;align-items:center;gap:9px;border-bottom:1px solid rgba(255,255,255,.08);}
+.sb-logo-icon{width:34px;height:34px;border-radius:9px;background:#00AE99;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.sb-logo-text{font:800 19px/1 'Lato',sans-serif;letter-spacing:-.02em;color:#fff;}
+.sb-logo-text span{color:#63ECD4;}
+.sb-section{padding:16px 12px 8px;}
+.sb-section-label{font:600 10px/1 Inter;color:rgba(255,255,255,.4);letter-spacing:.1em;padding:0 8px;margin-bottom:8px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:rgba(255,255,255,.72);font:500 13.5px/1 Inter;margin-bottom:2px;transition:background .15s,color .15s;border:none;background:none;width:100%;text-align:left;}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff;}
+.nav-item.active{background:rgba(0,174,153,.25);color:#fff;}
+.nav-item svg{width:18px;height:18px;flex-shrink:0;}
+.nav-badge{margin-left:auto;padding:2px 7px;border-radius:9999px;background:#E92222;color:#fff;font:700 10px/18px Inter;}
+.sb-user{margin:auto 0 0;padding:16px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:11px;}
+.sb-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#00AE99,#066B63);display:flex;align-items:center;justify-content:center;font:700 13px/1 Inter;color:#fff;flex-shrink:0;}
+.sb-user-info{flex:1;overflow:hidden;}
+.sb-user-name{font:600 13px/1 Inter;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sb-user-role{font:400 11px/1 Inter;color:rgba(255,255,255,.55);margin-top:3px;}
+#admin-main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;}
+#admin-header{height:62px;background:#fff;border-bottom:1px solid #EAECF0;display:flex;align-items:center;padding:0 24px;gap:14px;flex-shrink:0;}
+.hdr-title{font:700 17px/1 Inter;color:#222;flex:1;}
+.hdr-badge{padding:4px 11px;border-radius:9999px;font:600 11px/1 Inter;}
+.hdr-badge.yellow{background:#FFF1BF;color:#946200;}
+.hdr-badge.red{background:#FEE4E2;color:#A00F0F;}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:9999px;font:600 13px/1 Inter;cursor:pointer;border:none;transition:filter .15s;}
+.btn:hover{filter:brightness(.93);}
+.btn-primary{background:#00AE99;color:#fff;}
+.btn-outline{background:#fff;color:#344054;border:1px solid #D0D5DD;}
+.btn svg{width:15px;height:15px;}
+#admin-scroll{flex:1;overflow-y:auto;background:#F5F5F5;}
+#admin-scroll::-webkit-scrollbar{width:6px;}
+#admin-scroll::-webkit-scrollbar-thumb{background:#D0D5DD;border-radius:3px;}
+.view{display:none;padding:24px;}
+.view.active{display:block;}
+.view-heading{font:700 21px/1 Inter;color:#222;letter-spacing:-.02em;margin-bottom:5px;}
+.view-sub{font:400 13px/19px Inter;color:#667085;margin-bottom:22px;}
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.metric-card{background:#fff;border:1px solid #EAECF0;border-radius:12px;padding:18px;box-shadow:0 1px 3px rgba(16,24,40,.04);}
+.metric-label{font:500 11px/1 Inter;color:#667085;margin-bottom:11px;}
+.metric-value{font:700 26px/1 Inter;color:#222;letter-spacing:-.02em;}
+.metric-delta{font:500 11px/1 Inter;margin-top:7px;}
+.delta-up{color:#E92222;}
+.delta-down{color:#0ABE52;}
+.card{background:#fff;border:1px solid #EAECF0;border-radius:12px;margin-bottom:18px;box-shadow:0 1px 3px rgba(16,24,40,.04);}
+.card-header{padding:14px 18px;border-bottom:1px solid #F2F4F7;display:flex;align-items:center;justify-content:space-between;}
+.card-title{font:600 14px/1 Inter;color:#222;}
+.card-body{padding:18px;}
+table{width:100%;border-collapse:collapse;}
+th{font:600 11px/1 Inter;color:#667085;letter-spacing:.05em;text-align:left;padding:7px 13px;border-bottom:1px solid #EAECF0;}
+td{padding:12px 13px;border-bottom:1px solid #F9FAFB;font:400 13px/1 Inter;color:#344054;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+.risk-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:9999px;font:600 11px/1 Inter;}
+.risk-vh{background:#FEE4E2;color:#A00F0F;}
+.risk-h{background:#FEF6F0;color:#9A4F12;}
+.risk-m{background:#FFF1BF;color:#946200;}
+.risk-l{background:#ECFDF3;color:#027A48;}
+.status-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:9999px;font:600 11px/1 Inter;}
+.sb-verified{background:#E6FFFA;color:#066B63;}
+.sb-verified::before{content:'';width:6px;height:6px;border-radius:50%;background:#97FBE7;display:inline-block;}
+.sb-pending{background:#FFF1BF;color:#946200;}
+.sb-pending::before{content:'';width:6px;height:6px;border-radius:50%;background:#FFE78F;display:inline-block;}
+.sb-flagged{background:#FEE4E2;color:#A00F0F;}
+.sb-flagged::before{content:'';width:6px;height:6px;border-radius:50%;background:#FECDCA;display:inline-block;}
+.risk-bar-wrap{width:100%;height:8px;background:#F2F4F7;border-radius:9999px;overflow:hidden;}
+.risk-bar-fill{height:100%;border-radius:9999px;}
+.lga-row{display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid #F2F4F7;}
+.lga-row:last-child{border-bottom:none;}
+.lga-name{width:110px;font:500 13px/1 Inter;color:#344054;flex-shrink:0;}
+.lga-bar-bg{flex:1;height:10px;background:#F2F4F7;border-radius:9999px;overflow:hidden;}
+.lga-score{width:36px;text-align:right;font:700 13px/1 Inter;flex-shrink:0;}
+.toggle{position:relative;display:inline-block;width:44px;height:24px;}
+.toggle input{opacity:0;width:0;height:0;position:absolute;}
+.toggle-track{position:absolute;cursor:pointer;inset:0;background:#D0D5DD;border-radius:9999px;transition:.25s;}
+.toggle input:checked + .toggle-track{background:#00AE99;}
+.toggle-thumb{position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .25s;box-shadow:0 1px 3px rgba(0,0,0,.18);}
+.toggle input:checked + .toggle-track + .toggle-thumb{left:23px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.filter-bar{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+.filter-btn{padding:7px 14px;border-radius:9999px;font:500 12px/1 Inter;cursor:pointer;border:1px solid #D0D5DD;background:#fff;color:#344054;transition:all .15s;}
+.filter-btn.active-f{background:#E6FFFA;border-color:#97FBE7;color:#066B63;font-weight:600;}
+.chw-card{background:#fff;border:1px solid #EAECF0;border-radius:12px;padding:15px;}
+.chw-card-top{display:flex;align-items:center;gap:12px;margin-bottom:11px;}
+.chw-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 14px/1 Inter;color:#fff;flex-shrink:0;}
+.int-card{background:#fff;border:1px solid #EAECF0;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px;}
+.int-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+/* ── Shared toast ── */
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:#1D2939;color:#fff;padding:11px 20px;border-radius:9999px;font:500 13px/1 Inter;opacity:0;transition:opacity .25s,transform .25s;z-index:9999;pointer-events:none;display:flex;align-items:center;gap:8px;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<!-- ── Switcher bar ── -->
+<div id="switcher">
+  <div class="sw-logo">
+    <div class="sw-logo-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div>
+    <span class="sw-logo-text">No<span>Bite</span></span>
+  </div>
+  <div class="sw-tabs">
+    <button class="sw-tab active" onclick="switchMode('app',this)">Consumer App</button>
+    <button class="sw-tab" onclick="switchMode('admin',this)">Admin Dashboard</button>
+  </div>
+  <div class="sw-hint">Lagos State MOH · NCDC</div>
+</div>
+
+<!-- ════════════════════════════════
+     APP VIEW
+════════════════════════════════ -->
+<div id="view-app" class="show">
+<div class="device">
+  <div class="island"></div>
+  <div class="status-bar-app">
+    <span class="status-time">9:41</span>
+    <div class="status-icons">
+      <svg viewBox="0 0 19 12" width="17" height="12"><rect x="0" y="7.5" width="3.2" height="4.5" rx=".7" fill="white"/><rect x="4.8" y="5" width="3.2" height="7" rx=".7" fill="white"/><rect x="9.6" y="2.5" width="3.2" height="9.5" rx=".7" fill="white"/><rect x="14.4" y="0" width="3.2" height="12" rx=".7" fill="white"/></svg>
+      <svg viewBox="0 0 17 12" width="16" height="11"><path d="M8.5 3.2C10.8 3.2 12.9 4.1 14.4 5.6L15.5 4.5C13.7 2.7 11.2 1.5 8.5 1.5C5.8 1.5 3.3 2.7 1.5 4.5L2.6 5.6C4.1 4.1 6.2 3.2 8.5 3.2Z" fill="white"/><path d="M8.5 6.8C9.9 6.8 11.1 7.3 12 8.2L13.1 7.1C11.8 5.9 10.2 5.1 8.5 5.1C6.8 5.1 5.2 5.9 3.9 7.1L5 8.2C5.9 7.3 7.1 6.8 8.5 6.8Z" fill="white"/><circle cx="8.5" cy="10.5" r="1.5" fill="white"/></svg>
+      <svg viewBox="0 0 27 13" width="25" height="12"><rect x=".5" y=".5" width="23" height="12" rx="3.5" stroke="rgba(255,255,255,.35)" fill="none"/><rect x="2" y="2" width="20" height="9" rx="2" fill="white"/></svg>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div id="s-home" class="screen">
+    <div class="screen-scroll">
+      <div style="padding:60px 20px 16px;background:linear-gradient(180deg,#063A36,#066B63);color:#fff;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:9px;">
+            <div style="width:30px;height:30px;border-radius:9px;background:#00AE99;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div>
+            <div style="font:800 19px/1 'Lato',sans-serif;letter-spacing:-.02em;">No<span style="color:#63ECD4;">Bite</span></div>
+          </div>
+          <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;position:relative;">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span style="position:absolute;top:8px;right:9px;width:8px;height:8px;border-radius:50%;background:#FDC12D;border:2px solid #066B63;"></span>
+          </div>
+        </div>
+        <div style="display:inline-flex;align-items:center;gap:6px;margin-top:16px;padding:6px 12px;border-radius:9999px;background:rgba(255,255,255,.14);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#97FBE7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span style="font:500 13px/1 Inter;color:#E6FFFA;">Yaba, Lagos · updated 4 min ago</span>
+        </div>
+      </div>
+      <div style="margin:-26px 16px 0;background:#fff;border-radius:20px;padding:24px 22px 22px;box-shadow:0 12px 28px rgba(16,24,40,.10);border:1px solid #EAECF0;">
+        <div style="display:flex;align-items:center;gap:20px;">
+          <div style="position:relative;width:128px;height:128px;flex-shrink:0;">
+            <svg width="128" height="128" viewBox="0 0 128 128" style="transform:rotate(-90deg);"><circle cx="64" cy="64" r="56" fill="none" stroke="#EEF1F4" stroke-width="13"/><circle cx="64" cy="64" r="56" fill="none" stroke="#FDC12D" stroke-width="13" stroke-linecap="round" stroke-dasharray="190 352"/></svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;"><div style="font:800 38px/1 Inter;color:#222;letter-spacing:-.03em;">54</div><div style="font:600 10px/1 Inter;color:#9F9F9F;letter-spacing:.08em;margin-top:3px;">MRS SCORE</div></div>
+          </div>
+          <div style="flex:1;">
+            <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:9999px;background:#FFF1BF;color:#946200;font:700 12px/1 Inter;"><span style="width:7px;height:7px;border-radius:50%;background:#FDC12D;display:inline-block;"></span>MEDIUM RISK</span>
+            <div style="font:700 17px/24px Inter;color:#222;margin-top:12px;">Mosquitoes active at dusk</div>
+            <div style="font:400 13px/19px Inter;color:#555;margin-top:4px;">Use repellant and sleep under a treated net tonight.</div>
+          </div>
+        </div>
+        <div style="margin-top:20px;">
+          <div style="height:8px;border-radius:9999px;background:linear-gradient(90deg,#2E90FA,#0ABE52,#FDC12D,#FB6514,#E92222);position:relative;"><div style="position:absolute;top:50%;left:54%;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid #FDC12D;box-shadow:0 2px 6px rgba(0,0,0,.2);"></div></div>
+          <div style="display:flex;justify-content:space-between;margin-top:7px;font:500 9px/1 Inter;color:#9F9F9F;letter-spacing:.04em;"><span>VERY LOW</span><span>LOW</span><span>MEDIUM</span><span>HIGH</span><span>VERY HIGH</span></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:18px 16px 4px;">
+        <div class="tap" style="background:#fff;border:1px solid #EAECF0;border-radius:14px;padding:14px 10px;display:flex;flex-direction:column;gap:9px;"><div style="width:34px;height:34px;border-radius:10px;background:#E6FFFA;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#066B63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 0 4H2"/><path d="M2 12h20"/></svg></div><div style="font:600 12px/15px Inter;color:#222;">Buy a net</div></div>
+        <div class="tap" style="background:#fff;border:1px solid #EAECF0;border-radius:14px;padding:14px 10px;display:flex;flex-direction:column;gap:9px;"><div style="width:34px;height:34px;border-radius:10px;background:#EFF8FF;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#175CD3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l3 1m0 0l7-2 7 2v3.5M6 4v3.5M6 7.5c0 5 3 8 6 9.5"/></svg></div><div style="font:600 12px/15px Inter;color:#222;">Find repellant</div></div>
+        <div class="tap" onclick="aGoTab('map')" style="background:#fff;border:1px solid #EAECF0;border-radius:14px;padding:14px 10px;display:flex;flex-direction:column;gap:9px;"><div style="width:34px;height:34px;border-radius:10px;background:#FEE4E2;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C51616" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg></div><div style="font:600 12px/15px Inter;color:#222;">Report a bite</div></div>
+      </div>
+      <div class="tap" onclick="aGoTab('map')" style="margin:14px 16px 0;border-radius:18px;overflow:hidden;border:1px solid #EAECF0;">
+        <div style="position:relative;height:140px;background:#DCE7E4;overflow:hidden;">
+          <div style="position:absolute;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,#FDC12D 0%,rgba(253,193,45,0) 70%);top:-30px;left:-20px;opacity:.7;"></div>
+          <div style="position:absolute;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,#FB6514 0%,rgba(251,101,20,0) 70%);bottom:-60px;right:-30px;opacity:.65;"></div>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);"><div class="anim-pulse" style="position:absolute;inset:0;width:20px;height:20px;border-radius:50%;background:#FDC12D;"></div><div style="width:20px;height:20px;border-radius:50%;background:#066B63;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);"></div></div>
+          <div style="position:absolute;bottom:10px;right:12px;padding:6px 11px;border-radius:9999px;background:#066B63;font:600 11px/1 Inter;color:#fff;">Open →</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 16px 20px;">
+        <div style="background:#063A36;border-radius:16px;padding:16px;color:#fff;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#63ECD4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><div style="font:800 26px/1 Inter;margin-top:10px;">6 days</div><div style="font:400 12px/16px Inter;color:#97FBE7;margin-top:3px;">protected streak</div></div>
+        <div class="tap" onclick="aGoTab('map')" style="background:#fff;border:1px solid #EAECF0;border-radius:16px;padding:16px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C51616" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><div style="font:800 26px/1 Inter;color:#222;margin-top:10px;">12 reports</div><div style="font:400 12px/16px Inter;color:#555;margin-top:3px;">bites near you this week</div></div>
+      </div>
+      <div style="padding:0 16px 36px;">
+        <div class="tap" onclick="aOpenAlert()" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;background:#FFF8F0;border:1px dashed #FDC12D;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C27F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <div style="flex:1;"><div style="font:700 13px/1 Inter;color:#7A4F00;">Demo: simulate a proximity alert</div><div style="font:400 11px/15px Inter;color:#946200;margin-top:3px;">See what happens when you enter a high-risk zone</div></div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C27F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div id="s-map" class="screen hidden">
+    <div style="position:absolute;inset:0;background:#D6E2DF;overflow:hidden;">
+      <div style="position:absolute;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,#E92222 0%,rgba(233,34,34,0) 68%);top:-60px;right:-70px;opacity:.6;"></div>
+      <div style="position:absolute;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,#FB6514 0%,rgba(251,101,20,0) 70%);top:120px;left:-100px;opacity:.55;"></div>
+      <div style="position:absolute;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,#FDC12D 0%,rgba(253,193,45,0) 72%);bottom:120px;right:-40px;opacity:.6;"></div>
+      <div style="position:absolute;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,#0ABE52 0%,rgba(10,190,82,0) 72%);bottom:-60px;left:40px;opacity:.5;"></div>
+      <div style="position:absolute;top:110px;right:60px;"><div style="padding:5px 10px;border-radius:9999px;background:#E92222;color:#fff;font:700 11px/1 Inter;">Alimosho · 74</div></div>
+      <div style="position:absolute;top:280px;left:40px;"><div style="padding:5px 10px;border-radius:9999px;background:#FB6514;color:#fff;font:700 11px/1 Inter;">Ikeja · 63</div></div>
+      <div style="position:absolute;bottom:210px;left:120px;"><div style="padding:5px 10px;border-radius:9999px;background:#0ABE52;color:#fff;font:700 11px/1 Inter;">Surulere · 34</div></div>
+      <div style="position:absolute;top:54%;left:50%;transform:translate(-50%,-50%);"><div class="anim-pulse" style="position:absolute;top:0;left:0;width:24px;height:24px;border-radius:50%;background:#066B63;"></div><div style="width:24px;height:24px;border-radius:50%;background:#066B63;border:4px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.3);"></div></div>
+    </div>
+    <div style="position:absolute;top:0;left:0;right:0;padding:58px 16px 14px;background:linear-gradient(180deg,rgba(244,246,248,.96),rgba(244,246,248,0));"><div style="font:700 22px/1 Inter;color:#222;">Risk heatmap</div><div style="font:400 13px/1 Inter;color:#555;margin-top:5px;">Lagos State · LGA resolution</div></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:14px 18px 18px;">
+      <div style="width:38px;height:5px;border-radius:9999px;background:#E2E8F0;margin:0 auto 14px;"></div>
+      <div style="display:flex;align-items:center;gap:13px;"><div style="width:46px;height:46px;border-radius:12px;background:#FFF1BF;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C27F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div><div style="flex:1;"><div style="font:700 15px/1 Inter;color:#222;">Your area — Yaba</div><div style="font:400 12px/16px Inter;color:#555;margin-top:3px;">Medium risk · MRS 54</div></div><div style="font:800 22px/1 Inter;color:#C27F00;">54</div></div>
+    </div>
+  </div>
+
+  <!-- JOURNEY INPUT -->
+  <div id="s-journey" class="screen hidden">
+    <div class="screen-scroll" style="padding-bottom:20px;">
+      <div style="padding:60px 20px 8px;"><div style="font:700 26px/32px Inter;color:#222;">Journey planner</div><div style="font:400 14px/20px Inter;color:#555;margin-top:6px;">Check malaria risk before you travel.</div></div>
+      <div style="padding:14px 20px 0;">
+        <div style="font:600 13px/1 Inter;color:#344054;margin-bottom:7px;">Where are you going?</div>
+        <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #D0D5DD;border-radius:12px;padding:14px 15px;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><div id="dest-label" style="flex:1;font:400 15px/1 Inter;color:#222;">Kano</div></div>
+        <div style="font:600 13px/1 Inter;color:#344054;margin:18px 0 10px;">Popular destinations</div>
+        <div style="display:flex;flex-wrap:wrap;gap:9px;">
+          <div class="tap dest-btn" onclick="aPickDest('Kano',this)" style="padding:9px 15px;border-radius:9999px;background:#E6FFFA;border:1px solid #97FBE7;font:600 13px/1 Inter;color:#066B63;">Kano</div>
+          <div class="tap dest-btn" onclick="aPickDest('Port Harcourt',this)" style="padding:9px 15px;border-radius:9999px;background:#fff;border:1px solid #D0D5DD;font:600 13px/1 Inter;color:#344054;">Port Harcourt</div>
+          <div class="tap dest-btn" onclick="aPickDest('Abuja',this)" style="padding:9px 15px;border-radius:9999px;background:#fff;border:1px solid #D0D5DD;font:600 13px/1 Inter;color:#344054;">Abuja</div>
+        </div>
+        <div class="tap" onclick="aShowJourneyResult()" style="margin-top:24px;height:52px;border-radius:9999px;background:#00AE99;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 4px 12px rgba(0,174,153,.35);"><span style="font:700 15px/1 Inter;color:#fff;">Check risk briefing</span><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JOURNEY RESULT -->
+  <div id="s-journey-result" class="screen hidden">
+    <div class="screen-scroll">
+      <div id="jr-header" style="padding:58px 20px 24px;color:#fff;">
+        <div class="tap" onclick="aBackJourney()" style="display:inline-flex;align-items:center;gap:6px;font:600 13px/1 Inter;color:rgba(255,255,255,.85);margin-bottom:16px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 12H5"/><path d="m12 19-7-7 7-7"/></svg>Back</div>
+        <div style="font:400 13px/1 Inter;color:rgba(255,255,255,.8);">Risk briefing for</div>
+        <div id="jr-name" style="font:800 28px/32px Inter;letter-spacing:-.02em;margin-top:5px;"></div>
+        <div style="display:flex;align-items:flex-end;gap:14px;margin-top:18px;"><div><div id="jr-mrs" style="font:800 52px/1 Inter;letter-spacing:-.03em;"></div><div style="font:600 11px/1 Inter;color:rgba(255,255,255,.8);letter-spacing:.08em;margin-top:4px;">MRS SCORE</div></div><div id="jr-risk" style="padding:7px 14px;border-radius:9999px;background:rgba(255,255,255,.22);font:700 13px/1 Inter;margin-bottom:6px;"></div></div>
+      </div>
+      <div style="padding:18px 16px 0;">
+        <div style="display:flex;gap:11px;">
+          <div style="flex:1;background:#fff;border:1px solid #EAECF0;border-radius:14px;padding:14px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#175CD3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/></svg><div id="jr-rain" style="font:700 16px/1 Inter;color:#222;margin-top:9px;"></div><div style="font:400 11px/15px Inter;color:#555;margin-top:3px;">rainfall forecast</div></div>
+          <div style="flex:1;background:#fff;border:1px solid #EAECF0;border-radius:14px;padding:14px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C27F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg><div id="jr-season" style="font:700 14px/18px Inter;color:#222;margin-top:9px;"></div><div style="font:400 11px/15px Inter;color:#555;margin-top:3px;">peak season</div></div>
+        </div>
+      </div>
+      <div style="padding:20px 16px 0;"><div style="font:700 14px/1 Inter;color:#222;margin-bottom:12px;">Recommended precautions</div><div style="background:#fff;border:1px solid #EAECF0;border-radius:14px;overflow:hidden;"><div style="display:flex;align-items:center;gap:12px;padding:13px 15px;border-bottom:1px solid #F2F4F7;"><div style="width:26px;height:26px;border-radius:50%;background:#E6FFFA;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#066B63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div style="font:500 13px/18px Inter;color:#222;">Sleep under an insecticide-treated net every night</div></div><div style="display:flex;align-items:center;gap:12px;padding:13px 15px;border-bottom:1px solid #F2F4F7;"><div style="width:26px;height:26px;border-radius:50%;background:#E6FFFA;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#066B63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div style="font:500 13px/18px Inter;color:#222;">Apply repellant at dusk and dawn</div></div><div style="display:flex;align-items:center;gap:12px;padding:13px 15px;"><div style="width:26px;height:26px;border-radius:50%;background:#E6FFFA;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#066B63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div style="font:500 13px/18px Inter;color:#222;">Take antimalarial prophylaxis if advised by a clinician</div></div></div></div>
+      <div style="padding:20px 16px 36px;"><div class="tap" style="height:50px;border-radius:9999px;background:#00AE99;display:flex;align-items:center;justify-content:center;gap:9px;"><span style="font:700 14px/1 Inter;color:#fff;">Get alerts for this trip</span></div></div>
+    </div>
+  </div>
+
+  <!-- MORE -->
+  <div id="s-more" class="screen hidden">
+    <div class="screen-scroll" style="padding-bottom:20px;">
+      <div style="padding:60px 20px 8px;"><div style="font:700 26px/32px Inter;color:#222;">More</div></div>
+      <div style="padding:14px 16px 0;">
+        <div style="background:linear-gradient(135deg,#063A36,#066B63);border-radius:18px;padding:20px;color:#fff;"><div style="font:700 13px/1 Inter;letter-spacing:.04em;color:#FDC12D;">NOBITE PREMIUM</div><div style="font:700 19px/25px Inter;margin-top:12px;">Unlimited journey checks &amp; ward-level risk maps</div><div style="font:400 13px/19px Inter;color:#97FBE7;margin-top:6px;">From ₦500/month</div><div class="tap" style="display:inline-flex;margin-top:16px;padding:11px 20px;border-radius:9999px;background:#fff;font:700 13px/1 Inter;color:#066B63;">Upgrade</div></div>
+      </div>
+      <div style="padding:16px 16px 0;"><div style="background:#fff;border:1px solid #EAECF0;border-radius:16px;overflow:hidden;"><div class="tap" style="display:flex;align-items:center;gap:13px;padding:15px;border-bottom:1px solid #F2F4F7;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#066B63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg><div style="flex:1;font:500 14px/1 Inter;color:#222;">USSD risk check — dial *347#</div><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9F9F9F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div><div class="tap" style="display:flex;align-items:center;gap:13px;padding:15px;border-bottom:1px solid #F2F4F7;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#066B63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><div style="flex:1;font:500 14px/1 Inter;color:#222;">Family dashboard</div><span style="padding:3px 9px;border-radius:9999px;background:#FFF1BF;color:#946200;font:700 10px/1 Inter;">PREMIUM</span></div><div class="tap" style="display:flex;align-items:center;gap:13px;padding:15px;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#066B63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg><div style="flex:1;font:500 14px/1 Inter;color:#222;">Privacy &amp; location data</div><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9F9F9F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></div></div></div>
+    </div>
+  </div>
+
+  <!-- PROXIMITY ALERT -->
+  <div id="alert-overlay" class="hidden" style="position:absolute;inset:0;z-index:90;background:rgba(20,10,5,.45);">
+    <div class="anim-rise" style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:26px 26px 0 0;overflow:hidden;max-height:94%;display:flex;flex-direction:column;">
+      <div style="background:linear-gradient(150deg,#FB6514,#E92222);padding:24px 22px 22px;color:#fff;">
+        <div style="width:38px;height:5px;border-radius:9999px;background:rgba(255,255,255,.4);margin:0 auto 16px;"></div>
+        <div style="display:flex;align-items:center;gap:10px;"><div style="position:relative;width:34px;height:34px;"><div class="anim-pulse" style="position:absolute;inset:0;border-radius:50%;background:rgba(255,255,255,.45);"></div><div style="position:relative;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div></div><span class="anim-blink" style="font:700 12px/1 Inter;letter-spacing:.12em;">PROXIMITY ALERT</span></div>
+        <div style="font:800 25px/30px Inter;letter-spacing:-.02em;margin-top:16px;">You've entered a high-risk zone</div>
+        <div style="display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:6px 13px;border-radius:9999px;background:rgba(0,0,0,.18);font:600 13px/1 Inter;">Alimosho LGA · MRS 74</div>
+      </div>
+      <div style="padding:20px 22px 0;overflow-y:auto;flex:1;">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:12px;background:#F7F9FA;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#066B63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 0 4H2"/><path d="M2 12h20"/></svg><span style="font:500 13px/18px Inter;color:#222;">Sleep under a treated net tonight</span></div>
+          <div style="display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:12px;background:#F7F9FA;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#066B63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l3 1m0 0l7-2 7 2v3.5M6 4v3.5M6 7.5c0 5 3 8 6 9.5"/></svg><span style="font:500 13px/18px Inter;color:#222;">Apply repellant on exposed skin before dusk</span></div>
+          <div style="display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:12px;background:#F7F9FA;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#066B63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg><span style="font:500 13px/18px Inter;color:#222;">Wear long sleeves after sunset</span></div>
+        </div>
+      </div>
+      <div style="padding:12px 22px 26px;border-top:1px solid #F2F4F7;"><div style="display:flex;gap:10px;"><div class="tap" style="flex:1;height:50px;border-radius:9999px;background:#00AE99;display:flex;align-items:center;justify-content:center;gap:8px;"><span style="font:700 14px/1 Inter;color:#fff;">Buy a net</span></div></div><div class="tap" onclick="aCloseAlert()" style="text-align:center;margin-top:14px;font:600 14px/1 Inter;color:#9F9F9F;padding:6px;">Dismiss</div></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <button class="nav-tab tap" id="nav-home" onclick="aGoTab('home')"><svg viewBox="0 0 24 24" fill="none" stroke="#066B63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span style="color:#066B63;">Home</span></button>
+    <button class="nav-tab tap" id="nav-map" onclick="aGoTab('map')"><svg viewBox="0 0 24 24" fill="none" stroke="#9F9F9F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg><span style="color:#9F9F9F;">Map</span></button>
+    <button class="nav-tab tap" id="nav-journey" onclick="aGoTab('journey')"><svg viewBox="0 0 24 24" fill="none" stroke="#9F9F9F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg><span style="color:#9F9F9F;">Journey</span></button>
+    <button class="nav-tab tap" id="nav-more" onclick="aGoTab('more')"><svg viewBox="0 0 24 24" fill="none" stroke="#9F9F9F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg><span style="color:#9F9F9F;">More</span></button>
+  </div>
+  <div class="home-ind"><div class="home-bar"></div></div>
+</div>
+</div><!-- /view-app -->
+
+<!-- ════════════════════════════════
+     ADMIN VIEW
+════════════════════════════════ -->
+<div id="view-admin">
+  <nav id="sidebar">
+    <div class="sb-logo"><div class="sb-logo-icon"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div><span class="sb-logo-text">No<span>Bite</span> Admin</span></div>
+    <div class="sb-section">
+      <div class="sb-section-label">MONITORING</div>
+      <button class="nav-item active" id="nav-overview" onclick="dShowView('overview',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>Overview</button>
+      <button class="nav-item" id="nav-riskmap" onclick="dShowView('riskmap',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>Risk Map</button>
+      <button class="nav-item" id="nav-alerts" onclick="dShowView('alerts',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>Outbreak Alerts<span class="nav-badge">3</span></button>
+    </div>
+    <div class="sb-section">
+      <div class="sb-section-label">COMMUNITY</div>
+      <button class="nav-item" id="nav-reports" onclick="dShowView('reports',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Community Reports</button>
+      <button class="nav-item" id="nav-chw" onclick="dShowView('chw',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>CHW Network</button>
+    </div>
+    <div class="sb-section">
+      <div class="sb-section-label">SYSTEM</div>
+      <button class="nav-item" id="nav-integrations" onclick="dShowView('integrations',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Integrations</button>
+      <button class="nav-item" id="nav-settings" onclick="dShowView('settings',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
+    </div>
+    <div class="sb-user"><div class="sb-avatar">AO</div><div class="sb-user-info"><div class="sb-user-name">Dr. Amaka Okoro</div><div class="sb-user-role">Lagos State MOH · NCDC</div></div></div>
+  </nav>
+
+  <div id="admin-main">
+    <div id="admin-header">
+      <div id="hdr-title" class="hdr-title">Overview</div>
+      <div id="hdr-badge-wrap"><span class="hdr-badge yellow">Rainy season · MRS trending up</span></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline" onclick="showToast('Report exported')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Export</button>
+        <button class="btn btn-primary" onclick="showToast('Syncing data…')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>Sync data</button>
+      </div>
+    </div>
+    <div id="admin-scroll">
+
+      <!-- OVERVIEW -->
+      <div id="v-overview" class="view active">
+        <div class="view-heading">Lagos State Malaria Dashboard</div>
+        <div class="view-sub">Real-time MRS across all LGAs — updated 4 min ago via DHIS2</div>
+        <div class="metrics-grid">
+          <div class="metric-card"><div class="metric-label">Avg. MRS — Lagos State</div><div class="metric-value">54</div><div class="metric-delta delta-up">↑ 6 pts from last week</div></div>
+          <div class="metric-card"><div class="metric-label">High-risk LGAs (MRS ≥ 60)</div><div class="metric-value">3</div><div class="metric-delta delta-up">↑ 1 this week</div></div>
+          <div class="metric-card"><div class="metric-label">Community reports (7d)</div><div class="metric-value">1,284</div><div class="metric-delta delta-down">↓ 3% vs prior week</div></div>
+          <div class="metric-card"><div class="metric-label">Active CHWs</div><div class="metric-value">218</div><div class="metric-delta" style="color:#667085;">across 20 LGAs</div></div>
+        </div>
+        <div class="two-col">
+          <div class="card"><div class="card-header"><div class="card-title">LGA Watchlist — Highest Risk</div><span class="status-badge sb-flagged">Action needed</span></div><div class="card-body"><div id="watchlist"></div></div></div>
+          <div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Latest outbreak alerts</div><button class="btn btn-outline" style="padding:6px 12px;font-size:11px;" onclick="dShowView('alerts',document.getElementById('nav-alerts'))">View all</button></div>
+              <div class="card-body" style="padding:0;">
+                <div style="display:flex;align-items:flex-start;gap:12px;padding:13px 18px;border-bottom:1px solid #F2F4F7;"><div style="width:34px;height:34px;border-radius:9px;background:#FEE4E2;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#C51616" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div><div><div style="font:600 13px/1 Inter;color:#222;">Alimosho — P1 Cluster</div><div style="font:400 12px/18px Inter;color:#667085;margin-top:4px;">12 confirmed cases · 3 km radius</div></div><span class="status-badge sb-flagged" style="margin-left:auto;flex-shrink:0;">P1</span></div>
+                <div style="display:flex;align-items:flex-start;gap:12px;padding:13px 18px;border-bottom:1px solid #F2F4F7;"><div style="width:34px;height:34px;border-radius:9px;background:#FEF6F0;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#C67611" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div><div><div style="font:600 13px/1 Inter;color:#222;">Agege — Rising trend</div><div style="font:400 12px/18px Inter;color:#667085;margin-top:4px;">MRS up 11 pts in 48h</div></div><span class="status-badge sb-pending" style="margin-left:auto;flex-shrink:0;">P2</span></div>
+                <div style="display:flex;align-items:flex-start;gap:12px;padding:13px 18px;"><div style="width:34px;height:34px;border-radius:9px;background:#ECFDF3;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#027A48" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div><div><div style="font:600 13px/1 Inter;color:#222;">Eti-Osa — Resolved</div><div style="font:400 12px/18px Inter;color:#667085;margin-top:4px;">MRS dropped to 28 post-ITN</div></div><span class="status-badge sb-verified" style="margin-left:auto;flex-shrink:0;">Resolved</span></div>
+              </div>
+            </div>
+            <div class="card" style="margin-top:0;">
+              <div class="card-header"><div class="card-title">Data freshness</div></div>
+              <div class="card-body" style="padding:12px 18px;display:flex;flex-direction:column;gap:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font:500 13px/1 Inter;color:#344054;">DHIS2 sync</span><span class="status-badge sb-verified">4 min ago</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font:500 13px/1 Inter;color:#344054;">NCDC feed</span><span class="status-badge sb-verified">Live</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font:500 13px/1 Inter;color:#344054;">Rainfall API</span><span class="status-badge sb-verified">12 min ago</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font:500 13px/1 Inter;color:#344054;">Pharmacy QR</span><span class="status-badge sb-pending">22 min ago</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RISK MAP -->
+      <div id="v-riskmap" class="view">
+        <div class="view-heading">Risk Map — Lagos State</div>
+        <div class="view-sub">Mosquito Risk Score (MRS) per LGA · 0–100 composite score</div>
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-body" style="padding:0;">
+            <div style="position:relative;height:300px;background:linear-gradient(145deg,#D6E2DF,#C5D5D2);overflow:hidden;border-radius:12px 12px 0 0;">
+              <div style="position:absolute;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(233,34,34,.7),rgba(233,34,34,0) 70%);top:-40px;right:-40px;"></div>
+              <div style="position:absolute;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(251,101,20,.65),rgba(251,101,20,0) 70%);top:80px;left:-60px;"></div>
+              <div style="position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(253,193,45,.7),rgba(253,193,45,0) 72%);bottom:40px;right:80px;"></div>
+              <div style="position:absolute;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(10,190,82,.65),rgba(10,190,82,0) 72%);bottom:-30px;left:100px;"></div>
+              <div style="position:absolute;top:30px;right:80px;padding:5px 12px;border-radius:9999px;background:#E92222;color:#fff;font:700 12px/1 Inter;box-shadow:0 3px 8px rgba(0,0,0,.25);">Alimosho · 74</div>
+              <div style="position:absolute;top:90px;right:200px;padding:5px 12px;border-radius:9999px;background:#FB6514;color:#fff;font:700 12px/1 Inter;box-shadow:0 3px 8px rgba(0,0,0,.25);">Agege · 68</div>
+              <div style="position:absolute;top:140px;left:120px;padding:5px 12px;border-radius:9999px;background:#FB6514;color:#fff;font:700 12px/1 Inter;box-shadow:0 3px 8px rgba(0,0,0,.25);">Ikeja · 63</div>
+              <div style="position:absolute;bottom:80px;right:160px;padding:5px 12px;border-radius:9999px;background:#0ABE52;color:#fff;font:700 12px/1 Inter;box-shadow:0 3px 8px rgba(0,0,0,.25);">Surulere · 34</div>
+              <div style="position:absolute;bottom:40px;right:70px;padding:5px 12px;border-radius:9999px;background:#2E90FA;color:#fff;font:700 12px/1 Inter;box-shadow:0 3px 8px rgba(0,0,0,.25);">Eti-Osa · 28</div>
+              <div style="position:absolute;top:10px;left:10px;background:rgba(255,255,255,.92);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:5px;">
+                <div style="font:700 10px/1 Inter;color:#555;letter-spacing:.06em;margin-bottom:4px;">RISK LEVEL</div>
+                <div style="display:flex;align-items:center;gap:7px;font:500 11px/1 Inter;color:#344054;"><span style="width:10px;height:10px;border-radius:3px;background:#E92222;display:inline-block;"></span>Very high</div>
+                <div style="display:flex;align-items:center;gap:7px;font:500 11px/1 Inter;color:#344054;"><span style="width:10px;height:10px;border-radius:3px;background:#FB6514;display:inline-block;"></span>High</div>
+                <div style="display:flex;align-items:center;gap:7px;font:500 11px/1 Inter;color:#344054;"><span style="width:10px;height:10px;border-radius:3px;background:#FDC12D;display:inline-block;"></span>Medium</div>
+                <div style="display:flex;align-items:center;gap:7px;font:500 11px/1 Inter;color:#344054;"><span style="width:10px;height:10px;border-radius:3px;background:#0ABE52;display:inline-block;"></span>Low</div>
+                <div style="display:flex;align-items:center;gap:7px;font:500 11px/1 Inter;color:#344054;"><span style="width:10px;height:10px;border-radius:3px;background:#2E90FA;display:inline-block;"></span>Very low</div>
+              </div>
+            </div>
+            <div style="padding:16px 18px;"><div style="height:8px;border-radius:9999px;background:linear-gradient(90deg,#2E90FA,#0ABE52,#FDC12D,#FB6514,#E92222);"></div><div style="display:flex;justify-content:space-between;margin-top:6px;font:500 10px/1 Inter;color:#9F9F9F;"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div></div>
+          </div>
+        </div>
+        <div class="card"><div class="card-header"><div class="card-title">All LGAs — ranked by MRS</div></div><div style="overflow-x:auto;"><table><thead><tr><th>LGA</th><th>MRS</th><th>Risk Level</th><th>Trend (7d)</th><th>Reports</th></tr></thead><tbody id="lga-table"></tbody></table></div></div>
+      </div>
+
+      <!-- ALERTS -->
+      <div id="v-alerts" class="view">
+        <div class="view-heading">Outbreak Alerts</div>
+        <div class="view-sub">Auto-generated when LGA MRS crosses threshold or cluster detected</div>
+        <div style="display:flex;gap:12px;margin-bottom:22px;">
+          <div class="metric-card" style="flex:1;"><div class="metric-label">Active alerts</div><div class="metric-value">3</div></div>
+          <div class="metric-card" style="flex:1;"><div class="metric-label">Resolved (30d)</div><div class="metric-value">11</div></div>
+          <div class="metric-card" style="flex:1;"><div class="metric-label">Avg. response time</div><div class="metric-value">4.2h</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Active alerts</div><button class="btn btn-primary" onclick="showToast('SMS sent to 218 CHWs')">Notify CHWs</button></div>
+          <div class="card-body" style="padding:0;">
+            <div style="display:flex;align-items:flex-start;gap:14px;padding:16px 18px;border-bottom:1px solid #F2F4F7;background:#FFFBFA;"><div style="width:38px;height:38px;border-radius:10px;background:#FEE4E2;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#C51616" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div><div style="flex:1;"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><div style="font:700 14px/1 Inter;color:#222;">Alimosho — Active Cluster</div><span class="status-badge sb-flagged">P1 — Critical</span></div><div style="font:400 13px/20px Inter;color:#667085;margin-top:6px;">12 confirmed cases in 3 km radius. MRS 74. Immediate ITN &amp; IRS recommended.</div><div style="display:flex;gap:8px;margin-top:10px;"><button class="btn btn-primary" onclick="showToast('IRS order placed for Alimosho')">Deploy IRS</button><button class="btn btn-outline" onclick="showToast('Alert assigned')">Assign team</button></div></div></div>
+            <div style="display:flex;align-items:flex-start;gap:14px;padding:16px 18px;border-bottom:1px solid #F2F4F7;"><div style="width:38px;height:38px;border-radius:10px;background:#FEF6F0;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#C67611" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div><div style="flex:1;"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><div style="font:700 14px/1 Inter;color:#222;">Agege — Rising MRS</div><span class="status-badge sb-pending">P2 — Watch</span></div><div style="font:400 13px/20px Inter;color:#667085;margin-top:6px;">MRS 57→68 in 48h. Outreach recommended before P1 escalation.</div><div style="display:flex;gap:8px;margin-top:10px;"><button class="btn btn-outline" onclick="showToast('Escalated to P1')">Escalate</button><button class="btn btn-outline" onclick="showToast('Outreach scheduled')">Schedule outreach</button></div></div></div>
+            <div style="display:flex;align-items:flex-start;gap:14px;padding:16px 18px;"><div style="width:38px;height:38px;border-radius:10px;background:#FFF1BF;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#946200" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div><div style="flex:1;"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><div style="font:700 14px/1 Inter;color:#222;">Kosofe — Threshold breach</div><span class="status-badge sb-pending">P2 — Monitor</span></div><div style="font:400 13px/20px Inter;color:#667085;margin-top:6px;">MRS crossed 49. Breeding reports up 22%. Pre-emptive vector control advised.</div><div style="display:flex;gap:8px;margin-top:10px;"><button class="btn btn-outline" onclick="showToast('Monitoring increased')">Increase monitoring</button></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REPORTS -->
+      <div id="v-reports" class="view">
+        <div class="view-heading">Community Reports</div>
+        <div class="view-sub">Bite reports and breeding site flags from NoBite users</div>
+        <div class="filter-bar" id="report-filters">
+          <button class="filter-btn active-f" onclick="dFilterReports('all',this)">All</button>
+          <button class="filter-btn" onclick="dFilterReports('bite',this)">Bite report</button>
+          <button class="filter-btn" onclick="dFilterReports('breeding',this)">Breeding site</button>
+          <button class="filter-btn" onclick="dFilterReports('pending',this)">Pending</button>
+          <button class="filter-btn" onclick="dFilterReports('flagged',this)">Flagged</button>
+        </div>
+        <div class="card"><div style="overflow-x:auto;"><table><thead><tr><th>Date</th><th>LGA</th><th>Type</th><th>Description</th><th>Status</th><th></th></tr></thead><tbody id="reports-tbody"></tbody></table></div></div>
+      </div>
+
+      <!-- CHW -->
+      <div id="v-chw" class="view">
+        <div class="view-heading">CHW Network</div>
+        <div class="view-sub">218 Community Health Workers across 20 LGAs</div>
+        <div class="metrics-grid">
+          <div class="metric-card"><div class="metric-label">Total active CHWs</div><div class="metric-value">218</div></div>
+          <div class="metric-card"><div class="metric-label">Reports this week</div><div class="metric-value">94</div></div>
+          <div class="metric-card"><div class="metric-label">ITNs distributed (30d)</div><div class="metric-value">1,430</div></div>
+          <div class="metric-card"><div class="metric-label">Avg. response time</div><div class="metric-value">3.8h</div></div>
+        </div>
+        <div class="three-col" id="chw-grid"></div>
+      </div>
+
+      <!-- INTEGRATIONS -->
+      <div id="v-integrations" class="view">
+        <div class="view-heading">Integrations</div>
+        <div class="view-sub">Connected data sources and notification channels</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;" id="int-grid"></div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div id="v-settings" class="view">
+        <div class="view-heading">Settings</div>
+        <div class="view-sub">System configuration for Lagos State MOH · NCDC</div>
+        <div class="two-col">
+          <div class="card"><div class="card-header"><div class="card-title">Alert thresholds</div></div><div class="card-body"><div style="display:flex;flex-direction:column;gap:16px;" id="threshold-settings"></div></div></div>
+          <div class="card"><div class="card-header"><div class="card-title">Notification preferences</div></div><div class="card-body"><div style="display:flex;flex-direction:column;gap:14px;" id="notif-settings"></div></div></div>
+        </div>
+        <div class="card" style="margin-top:18px;"><div class="card-header"><div class="card-title">Organization profile</div><button class="btn btn-primary" onclick="showToast('Profile saved')">Save changes</button></div><div class="card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;"><div><label style="font:500 12px/1 Inter;color:#344054;display:block;margin-bottom:7px;">Organization</label><input style="width:100%;border:1px solid #D0D5DD;border-radius:9px;padding:10px 12px;font:400 14px/1 Inter;color:#222;outline:none;" value="Lagos State Ministry of Health"></div><div><label style="font:500 12px/1 Inter;color:#344054;display:block;margin-bottom:7px;">State</label><input style="width:100%;border:1px solid #D0D5DD;border-radius:9px;padding:10px 12px;font:400 14px/1 Inter;color:#222;outline:none;" value="Lagos State"></div><div><label style="font:500 12px/1 Inter;color:#344054;display:block;margin-bottom:7px;">Primary contact</label><input style="width:100%;border:1px solid #D0D5DD;border-radius:9px;padding:10px 12px;font:400 14px/1 Inter;color:#222;outline:none;" value="Dr. Amaka Okoro"></div><div><label style="font:500 12px/1 Inter;color:#344054;display:block;margin-bottom:7px;">Contact email</label><input style="width:100%;border:1px solid #D0D5DD;border-radius:9px;padding:10px 12px;font:400 14px/1 Inter;color:#222;outline:none;" value="a.okoro@health.lagos.gov.ng"></div></div></div>
+      </div>
+
+    </div><!-- /admin-scroll -->
+  </div><!-- /admin-main -->
+</div><!-- /view-admin -->
+
+<!-- Shared toast -->
+<div id="toast"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#63ECD4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span id="toast-msg"></span></div>
+
+<script>
+/* ── Mode switcher ── */
+function switchMode(mode, el) {
+  document.querySelectorAll('.sw-tab').forEach(function(t){ t.classList.remove('active'); });
+  el.classList.add('active');
+  document.getElementById('view-app').classList.toggle('show', mode === 'app');
+  document.getElementById('view-admin').classList.toggle('show', mode === 'admin');
+}
+
+/* ── Shared toast ── */
+var toastTimer;
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2600);
+}
+
+/* ══════════════ APP LOGIC ══════════════ */
+var JOURNEYS = {
+  'Kano':          {name:'Kano',          mrs:72, risk:'HIGH RISK',      bg:'linear-gradient(150deg,#FB6514,#E0500A)', rain:'High',     season:'Jun–Oct (rainy peak)'},
+  'Port Harcourt': {name:'Port Harcourt', mrs:88, risk:'VERY HIGH RISK', bg:'linear-gradient(150deg,#E92222,#B81212)', rain:'Very high', season:'Apr–Nov (long wet season)'},
+  'Abuja':         {name:'Abuja',         mrs:46, risk:'MEDIUM RISK',    bg:'linear-gradient(150deg,#E9A500,#C27F00)', rain:'Moderate', season:'Jul–Sep (short peak)'},
+};
+var aCurrentDest = 'Kano';
+
+function aGoTab(tab) {
+  ['home','map','journey','journey-result','more'].forEach(function(s){
+    document.getElementById('s-' + s).classList.add('hidden');
+  });
+  document.getElementById('alert-overlay').classList.add('hidden');
+  var el = document.getElementById('s-' + (tab === 'journey' ? 'journey' : tab));
+  if (el) el.classList.remove('hidden');
+  ['home','map','journey','more'].forEach(function(t){
+    var btn = document.getElementById('nav-' + t);
+    if (!btn) return;
+    var isActive = t === tab;
+    btn.querySelector('svg').style.stroke = isActive ? '#066B63' : '#9F9F9F';
+    btn.querySelector('span').style.color = isActive ? '#066B63' : '#9F9F9F';
+  });
+}
+
+function aPickDest(dest, el) {
+  aCurrentDest = dest;
+  document.getElementById('dest-label').textContent = dest;
+  document.querySelectorAll('.dest-btn').forEach(function(b){
+    b.style.background = '#fff'; b.style.border = '1px solid #D0D5DD'; b.style.color = '#344054';
+  });
+  el.style.background = '#E6FFFA'; el.style.border = '1px solid #97FBE7'; el.style.color = '#066B63';
+}
+
+function aShowJourneyResult() {
+  var j = JOURNEYS[aCurrentDest] || {name:aCurrentDest, mrs:55, risk:'MEDIUM RISK', bg:'linear-gradient(150deg,#E9A500,#C27F00)', rain:'Moderate', season:'Rainy season'};
+  document.getElementById('jr-header').style.background = j.bg;
+  document.getElementById('jr-name').textContent = j.name;
+  document.getElementById('jr-mrs').textContent = j.mrs;
+  document.getElementById('jr-risk').textContent = j.risk;
+  document.getElementById('jr-rain').textContent = j.rain;
+  document.getElementById('jr-season').textContent = j.season;
+  document.getElementById('s-journey').classList.add('hidden');
+  document.getElementById('s-journey-result').classList.remove('hidden');
+}
+
+function aBackJourney() {
+  document.getElementById('s-journey-result').classList.add('hidden');
+  document.getElementById('s-journey').classList.remove('hidden');
+}
+
+function aOpenAlert() { document.getElementById('alert-overlay').classList.remove('hidden'); }
+function aCloseAlert() { document.getElementById('alert-overlay').classList.add('hidden'); }
+
+/* ══════════════ ADMIN LOGIC ══════════════ */
+var LGAS = [
+  {name:'Alimosho',    mrs:74, risk:'very-high', trend:'+8',  reports:204, color:'#E92222'},
+  {name:'Agege',       mrs:68, risk:'high',      trend:'+11', reports:128, color:'#FB6514'},
+  {name:'Ikeja',       mrs:63, risk:'high',      trend:'+3',  reports:118, color:'#FB6514'},
+  {name:'Mushin',      mrs:58, risk:'medium',    trend:'+5',  reports:94,  color:'#FDC12D'},
+  {name:'Oshodi',      mrs:55, risk:'medium',    trend:'+2',  reports:86,  color:'#FDC12D'},
+  {name:'Yaba',        mrs:54, risk:'medium',    trend:'-1',  reports:79,  color:'#FDC12D'},
+  {name:'Kosofe',      mrs:49, risk:'medium',    trend:'+6',  reports:72,  color:'#FDC12D'},
+  {name:'Surulere',    mrs:34, risk:'low',        trend:'-4',  reports:44,  color:'#0ABE52'},
+  {name:'Eti-Osa',    mrs:28, risk:'low',        trend:'-9',  reports:31,  color:'#0ABE52'},
+  {name:'Ibeju-Lekki', mrs:22, risk:'low',       trend:'-2',  reports:18,  color:'#0ABE52'},
+];
+var RL = {'very-high':'Very High','high':'High','medium':'Medium','low':'Low'};
+var RC = {'very-high':'risk-vh','high':'risk-h','medium':'risk-m','low':'risk-l'};
+
+var REPORTS = [
+  {date:'17 Jun',lga:'Alimosho',type:'bite',     desc:'Multiple bites at dawn near Iyana-Ipaja',   status:'flagged'},
+  {date:'17 Jun',lga:'Agege',   type:'breeding',  desc:'Standing water in refuse dump behind mosque', status:'pending'},
+  {date:'17 Jun',lga:'Ikeja',   type:'bite',      desc:'Child bit inside bedroom — net had a tear',   status:'pending'},
+  {date:'16 Jun',lga:'Mushin',  type:'breeding',  desc:'Abandoned tires collecting water near school',status:'verified'},
+  {date:'16 Jun',lga:'Kosofe',  type:'bite',      desc:'Bites reported at dusk by Lagos Road',        status:'pending'},
+  {date:'15 Jun',lga:'Yaba',    type:'bite',      desc:'Outdoor bite during evening jog',             status:'verified'},
+  {date:'15 Jun',lga:'Surulere',type:'breeding',  desc:'Gutter overflow along Bode Thomas',           status:'verified'},
+];
+
+var CHWS = [
+  {name:'Ibrahim Salawu',  lga:'Alimosho', reports:18, status:'active',   bg:'#E92222', i:'IS'},
+  {name:'Ngozi Eze',       lga:'Agege',    reports:14, status:'active',   bg:'#FB6514', i:'NE'},
+  {name:'Chukwuemeka Obi', lga:'Ikeja',    reports:11, status:'active',   bg:'#FB6514', i:'CO'},
+  {name:'Fatimah Usman',   lga:'Mushin',   reports:9,  status:'active',   bg:'#FDC12D', i:'FU'},
+  {name:'Bola Akinwande',  lga:'Oshodi',   reports:7,  status:'inactive', bg:'#667085', i:'BA'},
+  {name:'Aminu Garba',     lga:'Kosofe',   reports:12, status:'active',   bg:'#FDC12D', i:'AG'},
+];
+
+var INTEGRATIONS = [
+  {name:'DHIS2',       status:'connected', color:'#027A48', iconBg:'#E6FFFA', desc:'Health Mgmt Info System',       detail:'Auto-syncs every 15 min · Last: 4 min ago', btn:'Configure'},
+  {name:'NCDC Feed',   status:'connected', color:'#027A48', iconBg:'#E6FFFA', desc:'Nigeria CDC surveillance',      detail:'Live case data · Streaming',                btn:'Configure'},
+  {name:'Pharmacy QR', status:'pending',   color:'#946200', iconBg:'#FEF6F0', desc:'Pharmacy stock and dispensing', detail:'Pilot: 12 of 40 pharmacies live',            btn:'Enroll pharmacies'},
+  {name:'SMS / USSD',  status:'connected', color:'#027A48', iconBg:'#E6FFFA', desc:'NoBite *347# low-data channel', detail:'43,200 USSD sessions this month',            btn:'View logs'},
+];
+
+function dRenderWatchlist() {
+  document.getElementById('watchlist').innerHTML = LGAS.slice(0,5).map(function(l){
+    return '<div class="lga-row"><div class="lga-name">'+l.name+'</div><div class="lga-bar-bg"><div style="width:'+l.mrs+'%;background:'+l.color+';height:10px;border-radius:9999px;"></div></div><div class="lga-score" style="color:'+l.color+';">'+l.mrs+'</div></div>';
+  }).join('');
+}
+
+function dRenderLgaTable() {
+  document.getElementById('lga-table').innerHTML = LGAS.map(function(l){
+    var up = l.trend.indexOf('+')===0;
+    return '<tr><td style="font:600 13px/1 Inter;color:#222;">'+l.name+'</td><td><div style="display:flex;align-items:center;gap:8px;"><div style="width:70px;"><div class="risk-bar-wrap"><div class="risk-bar-fill" style="width:'+l.mrs+'%;background:'+l.color+';"></div></div></div><span style="font:700 13px/1 Inter;color:'+l.color+';">'+l.mrs+'</span></div></td><td><span class="risk-pill '+RC[l.risk]+'">'+RL[l.risk]+'</span></td><td style="font:600 12px/1 Inter;color:'+(up?'#E92222':'#027A48')+';">'+(up?'↑':'↓')+' '+l.trend.replace(/[+\-]/,'')+'</td><td>'+l.reports+'</td></tr>';
+  }).join('');
+}
+
+function dRenderReports(filter) {
+  var data = REPORTS.filter(function(r){
+    return filter==='all'?true:filter==='bite'?r.type==='bite':filter==='breeding'?r.type==='breeding':filter==='pending'?r.status==='pending':filter==='flagged'?r.status==='flagged':true;
+  });
+  document.getElementById('reports-tbody').innerHTML = data.map(function(r){
+    var sc = r.status==='verified'?'sb-verified':r.status==='pending'?'sb-pending':'sb-flagged';
+    var tc = r.type==='bite'?'#FEE4E2':'#EFF8FF';
+    var tco = r.type==='bite'?'#A00F0F':'#175CD3';
+    return '<tr><td>'+r.date+'</td><td style="font:500 13px/1 Inter;">'+r.lga+'</td><td><span style="padding:3px 9px;border-radius:9999px;background:'+tc+';color:'+tco+';font:600 11px/1 Inter;">'+(r.type==='bite'?'Bite report':'Breeding site')+'</span></td><td style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+r.desc+'</td><td><span class="status-badge '+sc+'">'+r.status.charAt(0).toUpperCase()+r.status.slice(1)+'</span></td><td><button class="btn btn-outline" style="padding:5px 11px;font-size:11px;" onclick="showToast(\'Reviewed\')">Review</button></td></tr>';
+  }).join('');
+}
+
+function dRenderCHWs() {
+  document.getElementById('chw-grid').innerHTML = CHWS.map(function(c){
+    return '<div class="chw-card"><div class="chw-card-top"><div class="chw-avatar" style="background:'+c.bg+';">'+c.i+'</div><div><div style="font:600 14px/1 Inter;color:#222;">'+c.name+'</div><div style="font:400 12px/1 Inter;color:#667085;margin-top:4px;">'+c.lga+' LGA</div></div><span class="status-badge '+(c.status==='active'?'sb-verified':'sb-pending')+'" style="margin-left:auto;">'+(c.status==='active'?'Active':'Inactive')+'</span></div><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font:400 12px/1 Inter;color:#667085;">'+c.reports+' reports this week</span><button class="btn btn-outline" style="padding:6px 12px;font-size:11px;" onclick="showToast(\'Message sent\')">Message</button></div></div>';
+  }).join('');
+}
+
+function dRenderIntegrations() {
+  document.getElementById('int-grid').innerHTML = INTEGRATIONS.map(function(i){
+    return '<div class="int-card"><div style="display:flex;align-items:center;gap:13px;"><div class="int-icon" style="background:'+i.iconBg+';"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="'+i.color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div><div><div style="font:700 14px/1 Inter;color:#222;">'+i.name+'</div><div style="font:400 12px/1 Inter;color:#667085;margin-top:4px;">'+i.desc+'</div></div><span class="status-badge '+(i.status==='connected'?'sb-verified':'sb-pending')+'" style="margin-left:auto;">'+(i.status==='connected'?'Connected':'Pending')+'</span></div><div style="font:400 13px/18px Inter;color:#667085;">'+i.detail+'</div><button class="btn btn-outline" style="align-self:flex-start;" onclick="showToast(\''+i.btn+'\')">'+i.btn+'</button></div>';
+  }).join('');
+}
+
+function dRenderSettings() {
+  var thresholds = [{label:'P1 alert — MRS trigger',value:70},{label:'P2 watch — MRS trigger',value:60},{label:'Cluster radius (km)',value:3}];
+  document.getElementById('threshold-settings').innerHTML = thresholds.map(function(t){
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;"><label style="font:500 13px/1 Inter;color:#344054;">'+t.label+'</label><input type="number" value="'+t.value+'" style="width:68px;border:1px solid #D0D5DD;border-radius:8px;padding:7px 10px;font:600 14px/1 Inter;text-align:center;outline:none;"></div>';
+  }).join('');
+  var notifs = [{l:'SMS to CHWs on P1 alert',on:true},{l:'Email digest — daily 7 AM',on:true},{l:'WhatsApp on escalation',on:false},{l:'DHIS2 push on threshold breach',on:true}];
+  document.getElementById('notif-settings').innerHTML = notifs.map(function(n){
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;"><span style="font:400 13px/18px Inter;color:#344054;">'+n.l+'</span><label class="toggle"><input type="checkbox" '+(n.on?'checked':'')+' onchange="showToast(\'Setting updated\')"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>';
+  }).join('');
+}
+
+var VIEW_TITLES = {overview:'Overview',riskmap:'Risk Map',alerts:'Outbreak Alerts',reports:'Community Reports',chw:'CHW Network',integrations:'Integrations',settings:'Settings'};
+var VIEW_BADGES = {overview:'<span class="hdr-badge yellow">Rainy season · MRS trending up</span>',alerts:'<span class="hdr-badge red">3 active alerts</span>',riskmap:'<span class="hdr-badge yellow">Avg. MRS: 54</span>'};
+
+function dShowView(id, el) {
+  document.querySelectorAll('#view-admin .view').forEach(function(v){ v.classList.remove('active'); });
+  document.getElementById('v-' + id).classList.add('active');
+  document.querySelectorAll('#view-admin .nav-item').forEach(function(b){ b.classList.remove('active'); });
+  if (el) el.classList.add('active');
+  document.getElementById('hdr-title').textContent = VIEW_TITLES[id] || id;
+  document.getElementById('hdr-badge-wrap').innerHTML = VIEW_BADGES[id] || '';
+  document.getElementById('admin-scroll').scrollTop = 0;
+}
+
+function dFilterReports(type, el) {
+  document.querySelectorAll('#report-filters .filter-btn').forEach(function(b){ b.classList.remove('active-f'); });
+  el.classList.add('active-f');
+  dRenderReports(type);
+}
+
+/* Init */
+dRenderWatchlist();
+dRenderLgaTable();
+dRenderReports('all');
+dRenderCHWs();
+dRenderIntegrations();
+dRenderSettings();
+</script>
+</body>
+</html>
